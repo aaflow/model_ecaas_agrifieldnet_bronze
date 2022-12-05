@@ -1,4 +1,4 @@
-## 3rd place solution of Zindi AgriFieldNet India Challenge
+# 3rd place solution of Zindi AgriFieldNet India Challenge
 
 {{
 
