@@ -1,3 +1,5 @@
+## 3rd place solution of Zindi AgriFieldNet India Challenge
+
 {{
 
 A template repository for a ML model to be published on
