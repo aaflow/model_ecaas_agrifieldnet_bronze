@@ -17,8 +17,7 @@ and other details in the [model documentation](/docs/index.md).
 ## System Requirements
 
 * Git client
-* [Docker](https://www.docker.com/) with
-    [Compose](https://docs.docker.com/compose/) v1.28 or newer.
+* [Python 3.8](https://www.python.org)
 
 ## Hardware Requirements
 
@@ -30,83 +29,21 @@ and other details in the [model documentation](/docs/index.md).
 
 First clone this Git repository.
 
-{{
-
-:pushpin: only include the following LFS section if a file > 100MB had to be
-committed using LFS
-
-<https://docs.github.com/en/repositories/working-with-files/managing-large-files/about-large-files-on-github>)
-
-}}
-
-{{
-
-Please note: this repository uses
-[Git Large File Support (LFS)](https://git-lfs.github.com/) to include the
-model checkpoint file. Either install `git lfs` support for your git client,
-use the official Mac or Windows GitHub client to clone this repository.
-
-}}
-
-{{
-
-:zap: Shell commands have been tested with Linux and MacOS but will
-differ on Windows, or depending on your environment.
-
-}}
-
 ```bash
-git clone https://github.com/{{your_org_name}}/{{repository_name}}.git
-cd {{repository_name}}/
+git clone https://github.com/aaflow/model_ecaas_agrifieldnet_bronze.git
+cd model_ecaas_agrifieldnet_bronze/
 ```
 
-After cloning the model repository, you can use the Docker Compose runtime
-files as described below.
-
-## Pull or Build the Docker Image
-
-{{
-
-:pushpin: Model developer: please build and publish your images to [Docker
-Hub](https://hub.docker.com/). The images should be public, and should be
-tagged as `model_id:version` and `model_id:version-gpu`.
-
-For example model_id `model_unet_agri_western_cape_v1`
-would have two docker image tags published on Docker Hub:
-
-* `model_unet_agri_western_cape:1` for cpu inferencing
-* `model_unet_agri_western_cape:1-gpu` for gpu inferencing
-
-}}
-
-Pull pre-built image from Docker Hub (recommended):
+After cloning the model repository, install Python dependencies locally in your environment.
 
 ```bash
-# cpu
-docker pull docker.io/{{your_org_name}}/{{repository_name}}:1
-# optional, for NVIDIA gpu
-docker pull docker.io/{{your_org_name}}/{{repository_name}}:1-gpu
-
+pip install --upgrade pip
+pip install -r requirements.txt
 ```
 
-Or build image from source:
-
-```bash
-# cpu
-docker build -t {{your_org_name}}/{{repository_name}}:1 -f Dockerfile_cpu .
-# optional, for NVIDIA gpu
-docker build -t {{your_org_name}}/{{repository_name}}:1-gpu -f Dockerfile_gpu .
-
-```
 
 ## Run Model to Generate New Inferences
 
-{{
-
-:pushpin: Model developer: do not commit training data to the data folder on
-this repo, this is only a placeholder to run the model locally for inferencing.
-
-}}
 
 1. Prepare your input and output data folders. The `data/` folder in this repository
     contains some placeholder files to guide you.
@@ -131,21 +68,19 @@ this repo, this is only a placeholder to run the model locally for inferencing.
 
     ```bash
     # change paths to your actual input and output folders
-    export INPUT_DATA="/home/my_user/{{repository_name}}/data/input/"
-    export OUTPUT_DATA="/home/my_user/{{repository_name}}/data/output/"
+    export INPUT_DATA="/home/my_user/model_ecaas_agrifieldnet_bronze/data/input/"
+    export OUTPUT_DATA="/home/my_user/model_ecaas_agrifieldnet_bronze/data/output/"
     ```
 
-3. Run the appropriate Docker Compose command for your system
+3. Run the `run_model.sh` bash shell script.
 
     ```bash
-    # cpu
-    docker compose up {{model_id}}_cpu
-    # optional, for NVIDIA gpu driver
-    docker compose up {{model_id}}_gpu
+    bash run_model.sh
     ```
 
-4. Wait for the `docker compose` to finish running, then inspect the
+4. Wait for the script to finish running, then inspect the
 `OUTPUT_DATA` folder for results.
+
 
 ## Understanding Output Data
 
