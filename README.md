@@ -3,7 +3,7 @@
 
 ## Ensemble of Boostings models and Neural Networks for crop types classification 
 
-{{ Model Description (paragraph) }}
+Inference of LightGBM, XGBoost models, trained on aggregation field features and Neural Network models with Encoder to process raw field images and Dense layers to process numerical features.
 
 ![{{model_id}}](https://radiantmlhub.blob.core.windows.net/frontend-dataset-images/odk_sample_agricultural_dataset.png)
 
@@ -44,22 +44,12 @@ pip install -r requirements.txt
 
 ## Run Model to Generate New Inferences
 
-
 1. Prepare your input and output data folders. The `data/` folder in this repository
     contains some placeholder files to guide you.
 
     * The `data/` folder must contain:
-        * `input/chips` {{ Landsat, Maxar Open-Data 30cm, Sentinel-2, etc. }} imagery chips for inferencing:
-            * File name: {{ `chip_id.tif` }} e.g. {{ `0fec2d30-882a-4d1d-a7af-89dac0198327.tif` }}
-            * File Format: {{ GeoTIFF, 256x256 }}
-            * Coordinate Reference System: {{ WGS84, EPSG:4326 }}
-            * Bands: {{ 3 bands per file:
-                * Band 1 Type=Byte, ColorInterp=Red
-                * Band 2 Type=Byte, ColorInterp=Green
-                * Band 3 Type=Byte, ColorInterp=Blue
-                }}
-        * `/input/checkpoint` the model checkpoint {{ file | folder }}, `{{ checkpoint file or folder name }}`.
-            Please note: the model checkpoint is included in this repository.
+        * `input/ref_agrifieldnet_competition_v1`: data for inferencing.
+        * `input/checkpoint`: the model checkpoint.
     * The `output/` folder is where the model will write inferencing results.
 
 2. Set `INPUT_DATA` and `OUTPUT_DATA` environment variables corresponding with
