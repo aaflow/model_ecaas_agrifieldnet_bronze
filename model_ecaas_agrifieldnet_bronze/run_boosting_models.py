@@ -1,4 +1,3 @@
-
 import time
 import os
 import numpy as np
@@ -31,9 +30,7 @@ def seed_everything(seed=42):
     
 seed_everything(seed=42)
 
-NUM_FOLD = 5  
 # 
-CUR_MODEL_IDX = 0
 NUM_CLASSES = 13
 
 
@@ -56,7 +53,7 @@ OUTPUT_DATA = os.environ['OUTPUT_DATA']   ## "/home/my_user/model_ecaas_agrifiel
 print(f'INPUT_DATA: {INPUT_DATA}')
 print(f'OUTPUT_DATA: {OUTPUT_DATA}')
 
-data_dir = f'{INPUT_DATA}'   ## path to dataset: ref_agrifieldnet_competition_v1
+data_dir = f'{INPUT_DATA}'   ## path to dataset: contains ref_agrifieldnet_competition_v1
 
 ### Read Data
 # contains all band values for test fields
@@ -126,5 +123,122 @@ def create_group_features(df, tile_info, is_train):
 
 test = create_group_features(test_data.copy(), test_features.copy(), is_train=False)
 print(test.shape, test.index)
+
+### Create geo cluster features
+def compute_cl_distances(df, cl_centers):
+    ## df -- df/test
+    ## cl_centers -- coordinates of cluster centers from KMeans model
+    
+    for i in range(len(cl_centers)):
+        
+        df[f'geo_dist_cl_{i}'] = ((df['center_x'] - cl_centers[i, 0])**2 + (df['center_y'] - cl_centers[i, 1])**2 )**0.5 
+        df[f'geo_dist_cl_x_{i}'] = df['center_x'] - cl_centers[i, 0]
+        df[f'geo_dist_cl_y_{i}'] = df['center_y'] - cl_centers[i, 1]  
+        
+        
+    return df
+    
+    
+def run_kmeans(test):    ## dropped: df
+        
+    with open(f'{INPUT_DATA}checkpoint/kmeans/kmeans_geo.pkl', 'rb') as f:
+        km = pickle.load(f)
+        
+    cl_centers = km.cluster_centers_
+    print(cl_centers)
+        
+    X_test = test[['center_x', 'center_y']].copy()
+    test_labels = km.predict(X_test)  ## predict 5 geo cluster labels for test fields
+    print(f'test_labels: {test_labels.shape}')
+        
+    test['geo_cluster'] = test_labels
+    
+    # One Hot Encoding for geo cluster labels 
+    test = pd.get_dummies(test, columns=['geo_cluster'])
+    
+    # Create geo distance of fields to all cluster centers
+    test = compute_cl_distances(test, cl_centers)
+    
+    return test
+    
+    
+test = run_kmeans(test.copy())   ## dropped: df
+print(test.shape, test.index)
+test.to_csv(f'{OUTPUT_DATA}other_data/features/test_features_stats2.csv', index=False)
+
+
+### LGB models
+def train_and_evaluate_lgb(test, n_fold=5, seed=42):  ## drop train
+    
+    seed_everything(seed=seed)
+    
+    drop_columns = ['field_id', 'crop_id', 'fold', 'target', 'weight'] 
+    num_features = [col for col in test.columns if col not in drop_columns]    ## train->test
+    
+    x_test = test[num_features]
+    test_predictions = np.zeros((x_test.shape[0], NUM_CLASSES))    ### probas
+    
+    for fold_num in range(n_fold):
+            
+        model = lgb.Booster(model_file=f'{INPUT_DATA}checkpoint/lgb_models/lgb_fold_{fold_num}_seed_{seed}.txt')
+        test_predictions += model.predict(x_test) / n_fold  
+         
+
+    return test_predictions
+    
+
+predictions_all = []   ## collect all test predictions here 
+     
+NUM_FOLD = 10
+CUR_MODEL_IDX = 0
+predictions = train_and_evaluate_lgb(test.copy(), n_fold=NUM_FOLD, seed=CUR_MODEL_IDX)
+predictions_all.append(predictions)
+
+CUR_MODEL_IDX = 10
+predictions = train_and_evaluate_lgb(test.copy(), n_fold=NUM_FOLD, seed=CUR_MODEL_IDX)
+predictions_all.append(predictions)
+
+CUR_MODEL_IDX = 20
+predictions = train_and_evaluate_lgb(test.copy(), n_fold=NUM_FOLD, seed=CUR_MODEL_IDX)
+predictions_all.append(predictions)
+
+CUR_MODEL_IDX = 30 
+predictions = train_and_evaluate_lgb(test.copy(), n_fold=NUM_FOLD, seed=CUR_MODEL_IDX)
+predictions_all.append(predictions)
+
+CUR_MODEL_IDX = 40
+predictions = train_and_evaluate_lgb(test.copy(), n_fold=NUM_FOLD, seed=CUR_MODEL_IDX)
+predictions_all.append(predictions)
+
+print(len(predictions_all))
+
+
+### check: correct read of label_json  
+def create_submit(preds, test):
+    
+    with open(f'{data_dir}ref_agrifieldnet_competition_v1/ref_agrifieldnet_competition_v1_labels_train/ref_agrifieldnet_competition_v1_labels_train_001c1/ref_agrifieldnet_competition_v1_labels_train_001c1.json') as ll:
+        label_json = json.load(ll)
+        
+    crop_dict = {asset.get('values')[0]:asset.get('summary') for asset in label_json['assets']['raster_labels']['file:values']}
+    
+    with open(f'{INPUT_DATA}checkpoint/pickles/le_lgb.pkl', 'rb') as f:  
+        le = pickle.load(f)
+    
+    crop_columns = [crop_dict.get(i) for i in le.classes_]
+    sub = pd.DataFrame(columns = ['field_id'] + crop_columns)
+    sub['field_id'] = test['field_id']
+    sub[crop_columns] = preds 
+    
+    return sub
+    
+    
+sub = create_submit(np.array(predictions_all).mean(axis=0), test.copy())
+print(sub.shape)
+print(sub.isnull().sum().sum())
+
+sub.to_csv(f'{OUTPUT_DATA}sub_bst.csv', index=False)   #### SAVING
+
+
+
 
 
